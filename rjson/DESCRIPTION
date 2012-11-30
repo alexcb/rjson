@@ -1,6 +1,6 @@
 Package: rjson
-Version: 0.2.10
-Date: 2012-09-30
+Version: 0.2.11
+Date: 2012-11-29
 Title: JSON for R
 Author: Alex Couture-Beil <rjson_pkg@mofo.ca>
 Maintainer: Alex Couture-Beil <rjson_pkg@mofo.ca>

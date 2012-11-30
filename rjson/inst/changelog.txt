@@ -1,3 +1,5 @@
+0.2.11: Nov 29, 2012
+	Fixed toJSON bug where factors were saved as integers rather than strings
 0.2.10: Sep 30, 2012
 	Fixed precission issue in toJSON's C implementation where doubles only had 6 digits (as the std::iostream default specified). Now it should be the full precission. (Thanks Michael)
 	Fixed issue where toJSON(..., "R") never passed the "R" value on recursive calls (so it ended up calling the (potentially buggy) C version

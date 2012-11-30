@@ -54,46 +54,6 @@ std::string escapeString( const char *s )
 	return oss.str();
 }
 
-inline std::string doubleToString( double d )
-{
-	std::ostringstream oss;
-	if( R_FINITE(d) )
-		oss << d;
-	else if( ISNA( d ) )
-		oss << "\"NA\"";
-	else if( ISNAN( d ) )
-		oss << "\"NaN\"";
-	else
-		oss << (d > 0 ? "\"Inf\"" : "\"-Inf\"");
-	return oss.str();
-}
-
-inline std::string integerToString( int d )
-{
-	std::ostringstream oss;
-	if( d == NA_INTEGER )
-		oss << "\"NA\"";
-	else if( ISNAN( d ) )
-		oss << "\"NaN\"";
-	else if( R_FINITE(d) )
-		oss << d;
-	else
-		oss << (d > 0 ? "\"Inf\"" : "\"-Inf\"");
-	return oss.str();
-}
-
-inline std::string logicalToString( int b )
-{
-	if( b == NA_INTEGER )
-		return "\"NA\"";
-	else if( ISNAN( b ) )
-		return "\"NaN\"";
-	else if( b )
-		return "true";
-	else
-		return "false";
-}
-
 #define NO_CONTAINER 0
 #define ARRAY_CONTAINER 1
 #define OBJECT_CONTAINER 2
@@ -121,6 +81,9 @@ std::string toJSON2( SEXP x )
 		container_closer = "]";
 	}
 
+	SEXP levels;
+	PROTECT( levels = GET_LEVELS(x));
+	
 	switch( TYPEOF(x) ) {
 		case LGLSXP:
 			for( i = 0; i < n; i++ ) {
@@ -148,6 +111,8 @@ std::string toJSON2( SEXP x )
 					oss << "\"NA\"";
 				else if( ISNAN( INTEGER(x)[i] ) )
 					oss << "\"NaN\"";
+				else if( levels != NULL_USER_OBJECT )
+					oss << escapeString(CHAR(STRING_ELT(levels, INTEGER(x)[i] - 1 )));
 				else
 					oss << INTEGER(x)[i];
 			}
@@ -211,6 +176,7 @@ std::string toJSON2( SEXP x )
 		default:
 			error("unable to convert R type %i to JSON\n", TYPEOF(x));
 	}
+	UNPROTECT(1);
 	oss << container_closer;
 	return oss.str();
 }
