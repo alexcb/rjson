@@ -4,6 +4,10 @@
 #define DEFAULT_VECTOR_START_SIZE 10 /* allocate vectors this size to start with, then grow them as needed */
 #define MAX_NUMBER_BUF 256
 
+#define UNEXPECTED_ESCAPE_ERROR 1 /* issue an error and stop */
+#define UNEXPECTED_ESCAPE_SKIP 2 /* skip the unexpected char and move to the next character */
+#define UNEXPECTED_ESCAPE_KEEP 3 /* include the unexpected char as a regular char and continue */
+
 /* converts a single string into a list of (key, value) lists
    i.e. convert "nokey keyname=foo" into the following R list:
    list(list(value="nokey"), list(key="keyname", value="foo"))
@@ -17,16 +21,18 @@
            i.e.: "nokey keyname=foo" becomes
            list(list(value="nokey"), list(key="keyname", value="foo"))
 */
-SEXP parseValue( const char *s, const char **next_ch );
+SEXP parseValue( const char *s, const char **next_ch, const int unexpected_escape_handling );
 SEXP parseNull( const char *s, const char **next_ch );
 SEXP parseTrue( const char *s, const char **next_ch );
 SEXP parseFalse( const char *s, const char **next_ch );
-SEXP parseString( const char *s, const char **next_ch );
+SEXP parseString( const char *s, const char **next_ch, const int unexpected_escape_handling );
 SEXP parseNumber( const char *s, const char **next_ch );
-SEXP parseArray( const char *s, const char **next_ch );
-SEXP parseList( const char *s, const char **next_ch );
+SEXP parseArray( const char *s, const char **next_ch, const int unexpected_escape_handling );
+SEXP parseList( const char *s, const char **next_ch, const int unexpected_escape_handling );
 
 SEXP mkError( const char* format, ...);
+
+int getUnexpectedEscapeHandlingCode( const char *s );
 
 
 #define TRYERROR_CLASS "try-error"
@@ -108,12 +114,26 @@ int UTF8Encode2BytesUnicode( unsigned short input, char * s )
 	}
 }
 
-SEXP fromJSON( SEXP str_in )
+int getUnexpectedEscapeHandlingCode( const char *s )
+{
+	if( s != NULL ) {
+		if( strcmp( s, "skip" ) == 0 ) {
+			return UNEXPECTED_ESCAPE_SKIP;
+		} else if( strcmp( s, "keep" ) == 0 ) {
+			return UNEXPECTED_ESCAPE_KEEP;
+		}
+	}
+	/* in all other cases, just use the standard original error */
+	return UNEXPECTED_ESCAPE_ERROR;
+}
+
+SEXP fromJSON( SEXP str_in, SEXP unexpected_escape_handling_in )
 {
 	const char *s = CHAR(STRING_ELT(str_in,0));
 	const char *next_ch;
+	int unexpected_escape_handling = getUnexpectedEscapeHandlingCode(CHAR(STRING_ELT(unexpected_escape_handling_in,0)));
 	SEXP p, next_i, list;
-	PROTECT( p = parseValue( s, &next_ch ) );
+	PROTECT( p = parseValue( s, &next_ch, unexpected_escape_handling ) );
 
 	PROTECT( list = allocVector( VECSXP, 2 ) );
 	PROTECT( next_i = allocVector( INTSXP, 1 ) );
@@ -129,20 +149,20 @@ SEXP fromJSON( SEXP str_in )
 	return list;
 }
 
-SEXP parseValue( const char *s, const char **next_ch )
+SEXP parseValue( const char *s, const char **next_ch, const int unexpected_escape_handling )
 {
 	/* ignore whitespace */
 	while( *s == ' ' || *s == '\t' || *s == '\n' || *s == '\r' )
 		s++;
 
 	if( *s == '{' ) {
-		return parseList( s, next_ch );
+		return parseList( s, next_ch, unexpected_escape_handling );
 	}
 	if( *s == '[' ) {
-		return parseArray( s, next_ch );
+		return parseArray( s, next_ch, unexpected_escape_handling );
 	}
 	if( *s == '\"' ) {
-		return parseString( s, next_ch );
+		return parseString( s, next_ch, unexpected_escape_handling );
 	}
 	if( ( *s >= '0' && *s <= '9' ) || *s == '-' ) {
 		return parseNumber( s, next_ch );
@@ -207,7 +227,7 @@ SEXP parseFalse( const char *s, const char **next_ch )
 	return mkError( "parseFalse: expected to see 'false' - likely an unquoted string starting with 'f'.\n" );
 }
 
-SEXP parseString( const char *s, const char **next_ch )
+SEXP parseString( const char *s, const char **next_ch, const int unexpected_escape_handling )
 {
 	SEXP p;
 	/*assert( s[ 0 ] == '"' );*/
@@ -299,7 +319,18 @@ SEXP parseString( const char *s, const char **next_ch )
 
 					break;
 				default:
-					return mkError( "unexpected escaped character '\\%c'", s[ i ] );
+					if( unexpected_escape_handling == UNEXPECTED_ESCAPE_SKIP ) {
+						//skip the character (by decreasing the buffer index as it will be increased below. in actuality we dont want it to change).
+						buf_i--; 
+						Rf_warning( "unexpected escaped character '\\%c' at pos %i. Skipping value.", s[ i ], i );
+					} else if( unexpected_escape_handling == UNEXPECTED_ESCAPE_KEEP ) {
+						//treat a "\y" as simply 'y'
+						buf[ buf_i ] = s[ i ];
+						Rf_warning( "unexpected escaped character '\\%c' at pos %i. Keeping value.", s[ i ], i );
+					} else {
+						//case of UNEXPECTED_ESCAPE_ERROR, or any other bad enum values
+						return mkError( "unexpected escaped character '\\%c' at pos %i", s[ i ], i );
+					}
 					break;
 			}
 
@@ -365,7 +396,7 @@ SEXP test( void )
 	return array;
 }
 
-SEXP parseArray( const char *s, const char **next_ch )
+SEXP parseArray( const char *s, const char **next_ch, const int unexpected_escape_handling )
 {
 	PROTECT_INDEX p_index = -1, array_index = -1;
 	SEXP p = NULL, array = NULL;
@@ -392,10 +423,10 @@ SEXP parseArray( const char *s, const char **next_ch )
 
 		/* parse element (and protect pointer - ugly) */
 		if( p == NULL ) {
-			PROTECT_WITH_INDEX( p = parseValue( s, next_ch ), &p_index );
+			PROTECT_WITH_INDEX( p = parseValue( s, next_ch, unexpected_escape_handling ), &p_index );
 			objs++;
 		} else {
-			REPROTECT( p = parseValue( s, next_ch ), p_index );
+			REPROTECT( p = parseValue( s, next_ch, unexpected_escape_handling ), p_index );
 		}
 		s = *next_ch;
 
@@ -471,7 +502,7 @@ SEXP parseArray( const char *s, const char **next_ch )
 	return array;
 }
 
-SEXP parseList( const char *s, const char **next_ch )
+SEXP parseList( const char *s, const char **next_ch, const int unexpected_escape_handling )
 {
 	PROTECT_INDEX key_index, val_index, list_index, list_names_index;
 	SEXP key = NULL, val = NULL, list, list_names;
@@ -501,10 +532,10 @@ SEXP parseList( const char *s, const char **next_ch )
 
 		/*get key*/
 		if( key == NULL ) {
-			PROTECT_WITH_INDEX( key = parseValue( s, next_ch ), &key_index );
+			PROTECT_WITH_INDEX( key = parseValue( s, next_ch, unexpected_escape_handling ), &key_index );
 			objs++;
 		} else {
-			REPROTECT( key = parseValue( s, next_ch ), key_index );
+			REPROTECT( key = parseValue( s, next_ch, unexpected_escape_handling ), key_index );
 		}
 		s = *next_ch;
 
@@ -540,10 +571,10 @@ SEXP parseList( const char *s, const char **next_ch )
 
 		/*get value*/
 		if( val == NULL ) {
-			PROTECT_WITH_INDEX( val = parseValue( s, next_ch ), &val_index );
+			PROTECT_WITH_INDEX( val = parseValue( s, next_ch, unexpected_escape_handling ), &val_index );
 			objs++;
 		} else {
-			REPROTECT( val = parseValue( s, next_ch ), val_index );
+			REPROTECT( val = parseValue( s, next_ch, unexpected_escape_handling ), val_index );
 		}
 		s = *next_ch;
 

@@ -1,3 +1,5 @@
+0.2.12: Jan 14, 2013
+	Added unexpected.escape to the "C" fromJSON method. This allows users to parse invalid json containing bad escaped data. Defaults to raising an error as the old version did. Also added position to error/warning messages
 0.2.11: Nov 29, 2012
 	Fixed toJSON bug where factors were saved as integers rather than strings
 0.2.10: Sep 30, 2012
