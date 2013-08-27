@@ -134,7 +134,7 @@ fromJSON <- function( json_str, file, method = "C", unexpected.escape = "error" 
 	if( missing( json_str ) ) {
 		if( missing( file ) )
 			stop( "either json_str or file must be supplied to fromJSON")
-		json_str <- paste(readLines( file ),collapse="")
+		json_str <- paste(readLines( file, warn=FALSE ),collapse="")
 	} else {
 		if( missing( file ) == FALSE ) {
 			stop( "only one of json_str or file must be supplied to fromJSON")

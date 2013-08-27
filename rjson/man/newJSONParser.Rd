@@ -38,7 +38,9 @@ print( food )
 
 part_1 <- '{ "breakfast" : [ "milk", "fruit loops", "juice" ], '
 part_2 <- '"lunch" : [ "left over sushi" ]'
-part_3 <- '} [1,2,3,4,5]' #close off the first object, and create a 2nd JSON object, which is simply an array
+# close off the first object, and create a 2nd JSON object, which is simply an 
+# array
+part_3 <- '} [1,2,3,4,5]' 
 
 parser <- newJSONParser()
 parser$addData( part_1 )
