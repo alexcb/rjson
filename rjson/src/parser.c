@@ -524,18 +524,24 @@ SEXP parseList( const char *s, const char **next_ch, const int unexpected_escape
 			return addClass( mkError( "incomplete list\n" ), INCOMPLETE_CLASS );
 		}
 
-		if( *s == '}' ) {
+		if( *s == '}' && list_i == 0 ) {
 			UNPROTECT( objs );
 			*next_ch = s + 1;
 			return allocVector(VECSXP, 0);
 		}
 
 		/*get key*/
+
+		if( *s != '\"' ) {
+			UNPROTECT( objs );
+			return mkError( "unexpected character \"%c\"; expecting opening string quote (\") for key value\n", *s );
+		}
+
 		if( key == NULL ) {
-			PROTECT_WITH_INDEX( key = parseValue( s, next_ch, unexpected_escape_handling ), &key_index );
+			PROTECT_WITH_INDEX( key = parseString( s, next_ch, unexpected_escape_handling ), &key_index );
 			objs++;
 		} else {
-			REPROTECT( key = parseValue( s, next_ch, unexpected_escape_handling ), key_index );
+			REPROTECT( key = parseString( s, next_ch, unexpected_escape_handling ), key_index );
 		}
 		s = *next_ch;
 

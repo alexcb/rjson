@@ -38,3 +38,9 @@ test.nestedlist <- function()
 	checkIdentical( x, correct )
 	checkIdentical( x[[2]], correct[[2]] )
 }
+
+test.bad.list <- function()
+{
+	json <- "{\"a\": 123,}"
+	checkException( fromJSON( json ) )
+}

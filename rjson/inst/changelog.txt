@@ -1,5 +1,8 @@
+0.2.14: June 10, 2014
+	Fixed bug where fromJSON("{\"a\": 0,}") returned a list() rather than raising an error regarding the trailing comma. (Thanks Stavros Macrakis for the report)
 0.2.12: Jan 14, 2013
-	Added unexpected.escape to the "C" fromJSON method. This allows users to parse invalid json containing bad escaped data. Defaults to raising an error as the old version did. Also added position to error/warning messages
+	Added unexpected.escape to the "C" fromJSON method. This allows users to parse invalid json containing bad escaped data. 
+	Defaults to raising an error as the old version did. Also added position to error/warning messages
 0.2.11: Nov 29, 2012
 	Fixed toJSON bug where factors were saved as integers rather than strings
 0.2.10: Sep 30, 2012
