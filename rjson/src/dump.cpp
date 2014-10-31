@@ -30,15 +30,19 @@ std::string escapeString( const char *s )
 				oss << "\\t";
 				break;
 			default:
-				if( static_cast<unsigned char>(*s) < 0x80 ) {
+				unsigned char ch = static_cast<unsigned char>(*s);
+				if (( ch <= 0x1F ) || (ch == 0x7F)) {
+					unsigned short val = ch;
+					oss << "\\u" << std::setfill('0') << std::setw(4) << std::hex << val << std::dec;
+				} else if( ch < 0x80 ) {
 					// 0xxxxxxx
 					oss << *s;
-				} else if( (static_cast<unsigned char>(*s) & 0xE0) == 0xC0 && s[1] ) {
+				} else if( (ch & 0xE0) == 0xC0 && s[1] ) {
 					// 110xxxxx 10xxxxxx
 					unsigned short val = (s[1] & 0x3F) + ((s[0] & 0x1F) << 6);
 					oss << "\\u" << std::setfill('0') << std::setw(4) << std::hex << val << std::dec;
 					s += 1;
-				} else if( (static_cast<unsigned char>(*s) & 0xF0) == 0xE0 && s[1] && s[2] ) {
+				} else if( (ch & 0xF0) == 0xE0 && s[1] && s[2] ) {
 					// 1110xxxx 10xxxxxx 10xxxxxx
 					unsigned short val = (s[2] & 0x3F) + ((s[1] & 0x3F) << 6) + ((s[0] & 0x0F) << 12);
 					oss << "\\u" << std::setfill('0') << std::setw(4) << std::hex << val << std::dec;
