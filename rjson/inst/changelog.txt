@@ -1,3 +1,5 @@
+0.2.15: Nov 2, 2014
+    bugfix: toJSON was not escaping control characters 0-0x1f, and 0x7f. (Thanks to Early Ehlinger for patch)
 0.2.14: June 10, 2014
 	Fixed bug where fromJSON("{\"a\": 0,}") returned a list() rather than raising an error regarding the trailing comma. (Thanks Stavros Macrakis for the report)
 0.2.12: Jan 14, 2013
@@ -26,15 +28,11 @@
 0.2.2: Nov 29, 2010
 	bugfix: protection stack overflow - now uses PROTECT_WITH_INDEX() rather pushing far too many protects on to the stack
 	bugfix: added missing protects to SET_LENGTH calls
-
 0.2.1: unknown (missing entry)
-
 0.2.0: unknown (missing entry)
 	introduced a C based parser for reading JSON
-
 0.1.7: August 28, 2009
 	fixed toJSON bug: named vectors are now treated as json lists
-
 0.1.6: August 23, 2009
 	fixed toJSON bug: NA, NaN, Inf, -Inf are not converted to strings
 	fromJSON: null used to be returned as NA, but now is returned as NULL (but will still have the associated key displayed in the list)
