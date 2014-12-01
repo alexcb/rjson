@@ -1,5 +1,8 @@
+0.2.16: Nov 30, 2014
+	Added simplify=TRUE option to fromJSON, when True, lists are simplified into vectors 
+	(default is backwards compatible); when set to False, all json-encoded lists are kept as R lists.
 0.2.15: Nov 2, 2014
-    bugfix: toJSON was not escaping control characters 0-0x1f, and 0x7f. (Thanks to Early Ehlinger for patch)
+	bugfix: toJSON was not escaping control characters 0-0x1f, and 0x7f. (Thanks to Early Ehlinger for patch)
 0.2.14: June 10, 2014
 	Fixed bug where fromJSON("{\"a\": 0,}") returned a list() rather than raising an error regarding the trailing comma. (Thanks Stavros Macrakis for the report)
 0.2.12: Jan 14, 2013

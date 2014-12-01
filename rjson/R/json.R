@@ -129,7 +129,7 @@ newJSONParser <- function( method = "R" )
 }
 
 		
-fromJSON <- function( json_str, file, method = "C", unexpected.escape = "error" )
+fromJSON <- function( json_str, file, method = "C", unexpected.escape = "error", simplify = TRUE )
 {
 	if( missing( json_str ) ) {
 		if( missing( file ) )
@@ -146,7 +146,7 @@ fromJSON <- function( json_str, file, method = "C", unexpected.escape = "error" 
 	if( method != "C" )
 		stop( "only R or C method allowed" )
 
-	x <- .Call("fromJSON", json_str, unexpected.escape, PACKAGE="rjson")[[ 1 ]]
+	x <- .Call("fromJSON", json_str, unexpected.escape, simplify, PACKAGE="rjson")[[ 1 ]]
 	if( any( class(x) == "try-error" ) )
 		stop( x )
 	return( x )
