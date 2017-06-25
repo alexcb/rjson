@@ -1,3 +1,5 @@
+0.2.17: Jun 25, 2017
+	Fixed examples that refferenced True/False instead of TRUE/FALSE
 0.2.16: Nov 30, 2014
 	Added simplify=TRUE option to fromJSON, when True, lists are simplified into vectors 
 	(default is backwards compatible); when set to False, all json-encoded lists are kept as R lists.
