@@ -11,12 +11,17 @@ rjson_pkg@mofo.ca
 Installing from source
 ----------------------
 
-install.packages('/home/alex/gh/alexcb/rjson/rjson/', repos=NULL)
+install.packages('/foo/rjson', repos=NULL)
 
+
+Running tests
+-------------
+
+docker run -v `pwd`:/foo -w /foo -ti --rm rocker/r-devel /foo/test.r
 
 Packaging rjson
 ---------------
 
-docker run -v `pwd`:/foo -w foo -ti --rm rocker/r-devel /usr/bin/bash
-R CMD check rjson
+docker run -v `pwd`:/foo -w /foo -ti --rm rocker/r-devel /usr/bin/bash
+R CMD check --as-cran rjson
 R CMD build rjson

@@ -5,8 +5,8 @@ Title: JSON for R
 Author: Alex Couture-Beil <rjson_pkg@mofo.ca>
 Maintainer: Alex Couture-Beil <rjson_pkg@mofo.ca>
 Depends: R (>= 3.1.0)
-Description: Converts R object into JSON objects and vice-versa
+Description: Converts R object into JSON objects and vice-versa.
 License: GPL-2
 Repository: CRAN
-Date/Publication: 2012-10-01 15:36:10
+Date/Publication: 2017-06-25 12:34:56
 Packaged: 2012-09-30 17:06:43 UTC; alex

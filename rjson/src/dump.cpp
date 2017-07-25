@@ -7,6 +7,11 @@
 #include <R.h>
 #include <Rdefines.h>
 
+
+extern "C" {
+	#include "funcs.h"
+}
+
 std::string escapeString( const char *s )
 {
 	std::ostringstream oss;
