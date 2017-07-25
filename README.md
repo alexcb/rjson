@@ -19,9 +19,11 @@ Running tests
 
 docker run -v `pwd`:/foo -w /foo -ti --rm rocker/r-devel /foo/test.r
 
-Packaging rjson
----------------
+Packaging rjson for cran
+------------------------
 
-docker run -v `pwd`:/foo -w /foo -ti --rm rocker/r-devel /usr/bin/bash
-R CMD check --as-cran rjson
-R CMD build rjson
+# first ensure there are no WARNINGs or NOTEs
+docker run -v `pwd`:/foo -w /foo -ti --rm rocker/r-devel R CMD check --as-cran rjson
+
+# create source package with
+docker run -v `pwd`:/foo -w /foo -ti --rm rocker/r-devel R CMD build rjson
