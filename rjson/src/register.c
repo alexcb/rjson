@@ -13,5 +13,8 @@ static const R_CMethodDef cMethods[] = {
 
 void R_init_rjson(DllInfo* info) {
 	R_registerRoutines(info, cMethods, NULL, NULL, NULL);
+
+	// TODO this should be changed to FALSE to disable
+	// as per note on https://www.r-project.org/nosvn/R.check/r-devel-linux-x86_64-debian-clang/rjson-00check.html
 	R_useDynamicSymbols(info, TRUE);
 }
