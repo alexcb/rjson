@@ -17,7 +17,8 @@ install.packages('/foo/rjson', repos=NULL)
 Running tests
 -------------
 
-docker run -v `pwd`:/foo -w /foo -ti --rm rocker/r-devel /foo/test.r
+mkdir /tmp/rjson # to create a local place to avoid having to re-download RUnit each time
+docker run -v `pwd`:/foo -v /tmp/rjson:/tmp/rjson -w /foo -ti --rm rocker/r-devel /foo/test.r
 
 Packaging rjson for cran
 ------------------------

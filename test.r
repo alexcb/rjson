@@ -2,7 +2,15 @@
 install.packages( '/foo/rjson', repos=NULL )
 library( rjson )
 
-install.packages( 'RUnit' )
+RUnit = 'RUnit_0.4.31.tar.gz'
+tmp_path = sprintf('/tmp/rjson/%s', RUnit )
+if( !file.exists(tmp_path) ) {
+	url = sprintf('https://cloud.r-project.org/src/contrib/%s', RUnit)
+	cat('downloading ', url)
+	download.file( url, tmp_path )
+}
+
+install.packages( tmp_path, repos=NULL )
 library( RUnit )
 
 path <- system.file( "unittests", package="rjson" )

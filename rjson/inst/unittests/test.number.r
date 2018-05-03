@@ -23,11 +23,6 @@ test.number <- function()
 	x <- fromJSON( json )
 	checkIdentical( x, -0.3 )
 
-	#TODO this is actually invalid JSON
-	json <- "-.3"
-	x <- fromJSON( json )
-	checkIdentical( x, -0.3 )
-
 	json <- "0.3e3"
 	x <- fromJSON( json )
 	checkIdentical( x, 300 )
@@ -40,16 +35,12 @@ test.number <- function()
 	x <- fromJSON( json )
 	checkIdentical( x, 0.00001 )
 
-	#TODO this should fail
-	json <- "0.1e-4.5"
-	x <- fromJSON( json )
-	checkIdentical( x, 0 )
-
-	#TODO this should fail
-	json <- "0.1e"
-	x <- fromJSON( json )
-	checkIdentical( x, 0 )
-
+	# TODO check for invalid entries like 0.1e-4.5?
+	failing_json <- c( ".3", "-.3", "0.1e" )
+	for( bad_json in failing_json ) {
+		x <- try( fromJSON( bad_json ), silent = TRUE )
+		checkTrue( any( class( x ) == "try-error" ) )
+	}
 }
 
 

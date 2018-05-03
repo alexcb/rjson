@@ -627,15 +627,19 @@ SEXP parseNumber( const char *s, const char **next_ch, const ParseOptions *parse
 	SEXP p;
 	const char *start = s;
 	char buf[ MAX_NUMBER_BUF ];
+	int digits_before_period = 0;
+	int exponent_digits = 0;
 
-	if( *s == '-' )
+	if( *s == '-' ) {
 		s++;
+	}
 
 	if( *s == '\0' ) {
 		return addClass( mkError( "parseNumer error\n", *s ), INCOMPLETE_CLASS );
 	}
 
 	if( *s == '0' ) {
+		digits_before_period++;
 		s++;
 		if( ( *s >= '0' && *s <= '9' ) || *s == 'x' ) {
 			return mkError( "hex or octal is not valid json\n" );
@@ -643,22 +647,33 @@ SEXP parseNumber( const char *s, const char **next_ch, const ParseOptions *parse
 	}
 
 	while( *s >= '0' && *s <= '9' ) {
+		digits_before_period++;
 		s++;
 	}
 
 	if( *s == '.' ) {
+		if( digits_before_period == 0 ) {
+			return mkError( "numbers must start with a digit\n" );
+		}
 		s++;
-		while( *s >= '0' && *s <= '9' )
+		while( *s >= '0' && *s <= '9' ) {
 			s++;
+		}
 	}
 
 	/* exponential */
 	if( *s == 'e' || *s == 'E' ) {
 		s++;
-		if( *s == '+' || *s == '-' )
+		if( *s == '+' || *s == '-' ) {
 			s++;
-		while( *s >= '0' && *s <= '9' )
+		}
+		while( *s >= '0' && *s <= '9' ) {
 			s++;
+			exponent_digits++;
+		}
+		if( exponent_digits == 0 ) {
+			return mkError( "missing exponent\n" );
+		}
 	}
 	
 	unsigned int len = s - start;
