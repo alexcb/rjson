@@ -41,6 +41,7 @@ test.nestedlist <- function()
 
 test.bad.list <- function()
 {
-	json <- "{\"a\": 123,}"
-	checkException( fromJSON( json ) )
+	bad_json <- "{\"a\": 123,}"
+	x <- try( fromJSON( bad_json ), silent = TRUE )
+	checkTrue( any( class( x ) == "try-error" ) )
 }

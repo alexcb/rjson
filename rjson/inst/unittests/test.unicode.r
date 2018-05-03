@@ -38,9 +38,9 @@ test.unicode <- function()
 	#checkTrue( is.null( x$getObject() ) ) #should be incomplete
 
 	# test surrogate pair
-	#json <- "\uD834\uDD1E"
-	#x <- fromJSON( json )
-	#checkIdentical( x, "foo" )
+	json <- "\"Anaheim Ducks \\ud83d\\ude0e\""
+	x <- fromJSON( json )
+	checkIdentical( x, "Anaheim Ducks \xf0\x9f\x98\x8e" )
 
 }
 
