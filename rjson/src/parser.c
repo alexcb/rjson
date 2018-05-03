@@ -80,8 +80,9 @@ int hasClass( SEXP p, const char * class )
 #define         MASKBYTE                0x80
 #define         MASK2BYTES              0xC0
 #define         MASK3BYTES              0xE0
+#define         MASK4BYTES              0xF0
 
-int UTF8Encode2BytesUnicode( unsigned short input, char * s )
+int UTF8EncodeUnicode( unsigned long input, char * s )
 {
 	/* 0xxxxxxx */
 	if( input < 0x80 )
@@ -97,13 +98,63 @@ int UTF8Encode2BytesUnicode( unsigned short input, char * s )
 		return 2;
 	}
 	/* 1110xxxx 10xxxxxx 10xxxxxx */
-	else
+	else if ( input < 0x10000 )
 	{
 		s[ 0 ] = (MASK3BYTES | ( input >> 12 ) );
 		s[ 1 ] = (MASKBYTE | ( ( input >> 6 ) & MASKBITS ) );
 		s[ 2 ] = (MASKBYTE | ( input & MASKBITS ) );
 		return 3;
+	} 
+	/* 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx */
+	else 
+	{
+		s[ 0 ] = (MASK4BYTES | ( input >> 18 ) );
+		s[ 1 ] = (MASKBYTE | ( input >> 12 ) & MASKBITS );
+		s[ 2 ] = (MASKBYTE | ( ( input >> 6 ) & MASKBITS ) );
+		s[ 3 ] = (MASKBYTE | ( input & MASKBITS ) );
+		return 4;
 	}
+}
+
+/* Attempts to parse a javascript escaped UTF-16 sequence into a unicode codepoint from a buffer.
+   If the sequence is invalid no unicode value will be set. 
+   The function will return the number of read bytes as an indicator of whether input was successfully parsed */
+int parseUTF16Sequence( const char* s, int i, unsigned long* unicode)
+{
+	int read_bytes = 0;
+	int readSequence( const char* s, int i, unsigned short* unicode ) {
+		for( int j = 1; j <= 4; j++ )
+			if( ( ( s[ i + j ] >= 'a' && s[ i + j ] <= 'f' ) || 
+			( s[ i + j ] >= 'A' && s[ i + j ] <= 'F' ) ||
+			( s[ i + j ] >= '0' && s[ i + j ] <= '9' ) ) == FALSE ) {
+			return j - 1;
+		}
+		char unicode_buf[ 5 ]; /* to hold 4 digit hex (to prevent scanning a 5th digit accidentally */
+		strncpy( unicode_buf, s + i + 1, 5 );
+		unicode_buf[ 4 ] = '\0';
+		sscanf( unicode_buf, "%hx", unicode);
+		return 4;
+	}
+	unsigned short high;
+	read_bytes += readSequence( s, i, &high );
+	if ( read_bytes != 4 )
+		return read_bytes;
+	/* check if this is a UTF-16 surrogate pair */
+	if ( ( high >= 0xD800 && high <= 0xDBFF ) &&
+		( s[ i + read_bytes + 1 ] == '\\' && s[ i + read_bytes + 2 ] == 'u' ) )
+	{
+	read_bytes += 2;
+	i += read_bytes; /* parse the next UTF-16 sequence, we are now pointing at the next 'u' */
+		unsigned short low; 
+		read_bytes += readSequence( s, i, &low );
+		if ( read_bytes != 10 )
+		  return read_bytes;
+		*unicode = ((unsigned long)( high - 0xD800 )) * 0x400 + ( low - 0xDC00 ) + 0x10000; /* Decode the surrogate pair into a unicode codepoint */
+	}
+	else
+		*unicode = high;
+	
+	return read_bytes;
 }
 
 int getUnexpectedEscapeHandlingCode( const char *s )
@@ -296,22 +347,13 @@ SEXP parseString( const char *s, const char **next_ch, const ParseOptions *parse
 					buf[ buf_i ] = '\t';
 					break;
 				case 'u':
-					for( int j = 1; j <= 4; j++ )
-						if( ( ( s[ i + j ] >= 'a' && s[ i + j ] <= 'f' ) || 
-						    ( s[ i + j ] >= 'A' && s[ i + j ] <= 'F' ) ||
-						    ( s[ i + j ] >= '0' && s[ i + j ] <= '9' ) ) == FALSE ) {
-							return mkError( "unexpected unicode escaped char '%c'; 4 hex digits should follow the \\u (found %i valid digits)", s[ i + j ], j - 1 );
-						}
-
-					unsigned short unicode;
-					char unicode_buf[ 5 ]; /* to hold 4 digit hex (to prevent scanning a 5th digit accidentally */
-					strncpy( unicode_buf, s + i + 1, 5 );
-					unicode_buf[ 4 ] = '\0';
-					sscanf( unicode_buf, "%hx", &unicode);
-					buf_i += UTF8Encode2BytesUnicode( unicode, buf + buf_i ) - 1; /* -1 due to buf_i++ out of loop */
-
-					i += 4; /* skip the four digits - actually point to last digit, which is then incremented outside of switch */
-
+				  ;
+					unsigned long unicode;
+					int read_bytes = parseUTF16Sequence( s, i, &unicode);
+					if ( read_bytes != 4 && read_bytes != 10 ) /* In case of surrogate pairs read_bytes will be 10 */
+					  return mkError( "unexpected unicode escaped char '%c'; 4 hex digits should follow the \\u (found %i valid digits)", s[ i + read_bytes + 1], read_bytes);
+					i += read_bytes; /* skip the UTF16 sequence(s) - actually point to last digit, which is then incremented outside of switch */
+					buf_i += UTF8EncodeUnicode( unicode, buf + buf_i ) - 1; /* -1 due to buf_i++ out of loop */
 					break;
 				default:
 					if( parse_options->unexpected_escape_behavior == UNEXPECTED_ESCAPE_SKIP ) {
