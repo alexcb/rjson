@@ -275,7 +275,7 @@ SEXP parseFalse( const char *s, const char **next_ch, const ParseOptions *parse_
 
 SEXP parseString( const char *s, const char **next_ch, const ParseOptions *parse_options )
 {
-	SEXP p;
+	SEXP p, error_p;
 	/* assert( s[ 0 ] == '"' ); */
 	int i = 1; /* skip the start quote */
 
@@ -283,10 +283,14 @@ SEXP parseString( const char *s, const char **next_ch, const ParseOptions *parse
 	char *buf = (char*) malloc( buf_size );
 	buf[0] = '\0';
 	int buf_i = 0;
-	if( buf == NULL )
-		return mkError( "error allocating memory in parseString" );
-	if( sizeof( char ) != 1 )
-		return mkError( "parseString sizeof(char) != 1" );
+	if( buf == NULL ) {
+		error_p = mkError( "error allocating memory in parseString" );
+		goto error;
+	}
+	if( sizeof( char ) != 1 ) {
+		error_p = mkError( "parseString sizeof(char) != 1" );
+		goto error;
+	}
 
 	int copy_start = i;
 	int bytes_to_copy;
@@ -295,24 +299,29 @@ SEXP parseString( const char *s, const char **next_ch, const ParseOptions *parse
 		while( s[ i ] != '\\' && s[ i ] != '"' && s[ i ] != '\0' )
 			i++;
 		if( s[ i ] == '\0' ) {
-			return addClass( mkError( "unclosed string\n" ), INCOMPLETE_CLASS );
+			error_p = addClass( mkError( "unclosed string\n" ), INCOMPLETE_CLASS );
+			goto error;
 		}
 
 		if( s[ i ] == '\\' ) {
 			if( s[ i + 1 ] == '\0' ) {
-				return addClass( mkError( "unclosed string\n" ), INCOMPLETE_CLASS );
+				error_p = addClass( mkError( "unclosed string\n" ), INCOMPLETE_CLASS );
+				goto error;
 			}
 			/* TODO couldn't this be caught above (where s[ i ] == '\0') */
 			if( s[ i + 2 ] == '\0' ) {
-				return addClass( mkError( "unclosed string\n" ), INCOMPLETE_CLASS );
+				error_p = addClass( mkError( "unclosed string\n" ), INCOMPLETE_CLASS );
+				goto error;
 			}
 
 			/* grow memory */
 			if( buf_size - 1 <= i ) {
 				buf_size = 2 * ( buf_size + i );
 				buf = realloc( buf, buf_size );
-				if( buf == NULL )
-					return mkError( "error allocating memory in parseString" );
+				if( buf == NULL ) {
+					error_p = mkError( "error allocating memory in parseString" );
+					goto error;
+				}
 			}
 			
 			/* save string chunk from copy_start to i-1 */
@@ -350,8 +359,11 @@ SEXP parseString( const char *s, const char **next_ch, const ParseOptions *parse
 				  ;
 					unsigned long unicode;
 					int read_bytes = parseUTF16Sequence( s, i, &unicode);
-					if ( read_bytes != 4 && read_bytes != 10 ) /* In case of surrogate pairs read_bytes will be 10 */
-					  return mkError( "unexpected unicode escaped char '%c'; 4 hex digits should follow the \\u (found %i valid digits)", s[ i + read_bytes + 1], read_bytes);
+					if ( read_bytes != 4 && read_bytes != 10 ) {
+						/* In case of surrogate pairs read_bytes will be 10 */
+						error_p = mkError( "unexpected unicode escaped char '%c'; 4 hex digits should follow the \\u (found %i valid digits)", s[ i + read_bytes + 1], read_bytes);
+						goto error;
+					}
 					i += read_bytes; /* skip the UTF16 sequence(s) - actually point to last digit, which is then incremented outside of switch */
 					buf_i += UTF8EncodeUnicode( unicode, buf + buf_i ) - 1; /* -1 due to buf_i++ out of loop */
 					break;
@@ -366,7 +378,9 @@ SEXP parseString( const char *s, const char **next_ch, const ParseOptions *parse
 						Rf_warning( "unexpected escaped character '\\%c' at pos %i. Keeping value.", s[ i ], i );
 					} else {
 						/* case of UNEXPECTED_ESCAPE_ERROR, or any other bad enum values */
-						return mkError( "unexpected escaped character '\\%c' at pos %i", s[ i ], i );
+						free( buf );
+						error_p = mkError( "unexpected escaped character '\\%c' at pos %i", s[ i ], i );
+						goto error;
 					}
 					break;
 			}
@@ -380,8 +394,10 @@ SEXP parseString( const char *s, const char **next_ch, const ParseOptions *parse
 				/* grow memory */
 				buf_size = 2 * ( buf_size + i );
 				buf = realloc( buf, buf_size );
-				if( buf == NULL )
-					return mkError( "error allocating memory in parseString" );
+				if( buf == NULL ) {
+					error_p = mkError( "error allocating memory in parseString" );
+					goto error;
+				}
 			}
 			bytes_to_copy = i - copy_start;
 			if( bytes_to_copy > 0 ) {
@@ -400,6 +416,11 @@ SEXP parseString( const char *s, const char **next_ch, const ParseOptions *parse
 	free( buf );
 	UNPROTECT( 1 );
 	return p;
+error:
+	if( buf ) {
+		free( buf );
+	}
+	return error_p;
 }
 
 void setArrayElement( SEXP array, int unsigned i, SEXP val )
