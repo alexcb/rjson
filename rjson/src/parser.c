@@ -116,25 +116,26 @@ int UTF8EncodeUnicode( unsigned long input, char * s )
 	}
 }
 
+int readSequence( const char* s, int i, unsigned short* unicode ) {
+	for( int j = 1; j <= 4; j++ )
+		if( ( ( s[ i + j ] >= 'a' && s[ i + j ] <= 'f' ) ||
+		( s[ i + j ] >= 'A' && s[ i + j ] <= 'F' ) ||
+		( s[ i + j ] >= '0' && s[ i + j ] <= '9' ) ) == FALSE ) {
+		return j - 1;
+	}
+	char unicode_buf[ 5 ]; /* to hold 4 digit hex (to prevent scanning a 5th digit accidentally */
+	strncpy( unicode_buf, s + i + 1, 5 );
+	unicode_buf[ 4 ] = '\0';
+	sscanf( unicode_buf, "%hx", unicode);
+	return 4;
+}
+
 /* Attempts to parse a javascript escaped UTF-16 sequence into a unicode codepoint from a buffer.
    If the sequence is invalid no unicode value will be set. 
    The function will return the number of read bytes as an indicator of whether input was successfully parsed */
 int parseUTF16Sequence( const char* s, int i, unsigned long* unicode)
 {
 	int read_bytes = 0;
-	int readSequence( const char* s, int i, unsigned short* unicode ) {
-		for( int j = 1; j <= 4; j++ )
-			if( ( ( s[ i + j ] >= 'a' && s[ i + j ] <= 'f' ) || 
-			( s[ i + j ] >= 'A' && s[ i + j ] <= 'F' ) ||
-			( s[ i + j ] >= '0' && s[ i + j ] <= '9' ) ) == FALSE ) {
-			return j - 1;
-		}
-		char unicode_buf[ 5 ]; /* to hold 4 digit hex (to prevent scanning a 5th digit accidentally */
-		strncpy( unicode_buf, s + i + 1, 5 );
-		unicode_buf[ 4 ] = '\0';
-		sscanf( unicode_buf, "%hx", unicode);
-		return 4;
-	}
 	unsigned short high;
 	read_bytes += readSequence( s, i, &high );
 	if ( read_bytes != 4 )
