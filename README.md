@@ -25,6 +25,7 @@ Packaging rjson for cran
 
     # first ensure there are no WARNINGs or NOTEs
     find . -name \*.o -delete
+    find . -name \*.so -delete
     docker run -v `pwd`:/foo -w /foo -ti --rm rocker/r-devel R CMD check --as-cran rjson
 
     # Checking valgrind
