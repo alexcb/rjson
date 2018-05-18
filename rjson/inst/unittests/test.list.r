@@ -45,3 +45,17 @@ test.bad.list <- function()
 	x <- try( fromJSON( bad_json ), silent = TRUE )
 	checkTrue( any( class( x ) == "try-error" ) )
 }
+
+test.unsupported.sexp <- function()
+{
+	x <- fromJSON('{ "key":[ { "foo":"bar" }, { "bah":"baz" }] }')
+	correct <- list( key = list( list( foo = "bar" ), list( bah = "baz" ) ))
+	checkIdentical( x, correct )
+}
+
+test.rejected.comma <- function()
+{
+	bad_json = '{ "key":[ { "foo":"bar" }, { "bah":"baz" },] }'
+	x <- try( fromJSON( bad_json ), silent = TRUE )
+	checkTrue( any( class( x ) == "try-error" ) )
+}

@@ -451,6 +451,8 @@ SEXP parseArray( const char *s, const char **next_ch, const ParseOptions *parse_
 	SEXPTYPE  p_type = -1;
 	unsigned int array_i = 0;
 
+	int trailing_comma = 0;
+
 	while( 1 ) {
 		/* ignore whitespace */
 		while( *s == ' ' || *s == '\t' || *s == '\n' || *s == '\r' )
@@ -461,9 +463,15 @@ SEXP parseArray( const char *s, const char **next_ch, const ParseOptions *parse_
 		}
 
 		if( *s == ']' ) {
+			if( trailing_comma ) {
+				UNPROTECT( objs );
+				return addClass( mkError( "trailing comma found in array\n" ), INCOMPLETE_CLASS );
+			}
+
 			*next_ch = s + 1;
 			return allocVector(VECSXP, 0);
 		}
+		trailing_comma = 0;
 
 		/* parse element (and protect pointer - ugly) */
 		if( p == NULL ) {
@@ -485,6 +493,9 @@ SEXP parseArray( const char *s, const char **next_ch, const ParseOptions *parse_
 				p_type = VECSXP;
 				is_list = TRUE;
 			} else if( GET_LENGTH( p ) != 1 ) {
+				p_type = VECSXP;
+				is_list = TRUE;
+			} else if( TYPEOF( p ) == VECSXP ) {
 				p_type = VECSXP;
 				is_list = TRUE;
 			} else {
@@ -532,6 +543,7 @@ SEXP parseArray( const char *s, const char **next_ch, const ParseOptions *parse_
 		/* more elements to come */
 		if( *s == ',' ) {
 			s++;
+			trailing_comma = 1;
 		} else if( *s == '\0' ) {
 			UNPROTECT( objs );
 			return addClass( mkError( "incomplete array\n" ), INCOMPLETE_CLASS );
