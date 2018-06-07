@@ -2,7 +2,8 @@
 install.packages( '/foo/rjson', repos=NULL )
 library( rjson )
 
-RUnit = 'RUnit_0.4.31.tar.gz'
+# change this to the latest version in https://cran.rstudio.com/web/packages/RUnit/index.html
+RUnit = 'RUnit_0.4.32.tar.gz'
 tmp_path = sprintf('/tmp/rjson/%s', RUnit )
 if( !file.exists(tmp_path) ) {
 	url = sprintf('https://cloud.r-project.org/src/contrib/%s', RUnit)

@@ -7,10 +7,11 @@
 ***Lists with unnamed components are not currently supported***
  }
 
-\usage{toJSON( x, method="C" )}
+\usage{toJSON( x, indent=0, method="C" )}
 
 \arguments{
 \item{x}{a vector or list to convert into a JSON object}
+\item{indent}{an integer specifying how much indentation to use when formatting the JSON object; if 0, no pretty-formatting is used}
 \item{method}{use the \code{C} implementation, or the older slower (and one day to be depricated) \code{R} implementation}
 }
 

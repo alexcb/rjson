@@ -58,7 +58,7 @@ std::string escapeString( const char *s )
 		}
 		s++;
 	}
-       
+
 	oss << '"';
 	return oss.str();
 }
@@ -67,7 +67,7 @@ std::string escapeString( const char *s )
 #define ARRAY_CONTAINER 1
 #define OBJECT_CONTAINER 2
 
-std::string toJSON2( SEXP x )
+std::string toJSON2( SEXP x, int indent, int indent_amount )
 {
 	if( x == R_NilValue )
 		return "null";
@@ -83,11 +83,15 @@ std::string toJSON2( SEXP x )
 	if( names != NULL_USER_OBJECT ) {
 		oss << "{";
 		container_closer = "}";
+		if( indent_amount > 0 ) { oss << "\n"; }
+		indent += indent_amount;
 		if( length(names) != n )
 			error("number of names does not match number of elements\n");
 	} else if( n != 1 || TYPEOF(x) == VECSXP ) {
 		oss << "[";
 		container_closer = "]";
+		indent += indent_amount;
+		if( indent_amount > 0 ) { oss << "\n"; }
 	}
 
 	SEXP levels;
@@ -96,8 +100,11 @@ std::string toJSON2( SEXP x )
 	switch( TYPEOF(x) ) {
 		case LGLSXP:
 			for( i = 0; i < n; i++ ) {
-				if( i > 0 )
+				if( i > 0 ) {
 					oss << ",";
+					if( indent_amount > 0 ) { oss << "\n"; }
+				}
+				oss << std::setw(indent) << "";
 				if( names != NULL_USER_OBJECT )
 					oss << escapeString(CHAR(STRING_ELT(names, i))) << ":";
 				if( LOGICAL(x)[i] == NA_INTEGER )
@@ -112,8 +119,11 @@ std::string toJSON2( SEXP x )
 			break;
 		case INTSXP:
 			for( i = 0; i < n; i++ ) {
-				if( i > 0 )
+				if( i > 0 ) {
 					oss << ",";
+					if( indent_amount > 0 ) { oss << "\n"; }
+				}
+				oss << std::setw(indent) << "";
 				if( names != NULL_USER_OBJECT )
 					oss << escapeString(CHAR(STRING_ELT(names, i))) << ":";
 				if( INTEGER(x)[i] == NA_INTEGER )
@@ -130,7 +140,9 @@ std::string toJSON2( SEXP x )
 			for( i = 0; i < n; i++ ) {
 				if( i > 0 ) {
 					oss << ",";
+					if( indent_amount > 0 ) { oss << "\n"; }
 				}
+				oss << std::setw(indent) << "";
 				if( names != NULL_USER_OBJECT ) {
 					oss << escapeString(CHAR(STRING_ELT(names, i))) << ":";
 				}
@@ -157,14 +169,16 @@ std::string toJSON2( SEXP x )
 				REAL(p)[1] = COMPLEX(x)[i].i;
 
 				setAttrib( p, R_NamesSymbol, p_names );
-				oss << toJSON2(p);
+				oss << toJSON2(p, indent, indent_amount);
 				UNPROTECT(2);
 			}
 			break;
 		case STRSXP:
 			for( i = 0; i < n; i++ ) {
-				if( i > 0 )
+				if( i > 0 ) {
 					oss << ",";
+					if( indent_amount > 0 ) { oss << "\n"; }
+				}
 				if( names != NULL_USER_OBJECT )
 					oss << escapeString(CHAR(STRING_ELT(names, i))) << ":";
 				if( STRING_ELT(x,i) == NA_STRING )
@@ -175,25 +189,35 @@ std::string toJSON2( SEXP x )
 			break;
 		case VECSXP:
 			for( i = 0; i < n; i++ ) {
-				if( i > 0 )
+				if( i > 0 ) {
 					oss << ",";
+					if( indent_amount > 0 ) { oss << "\n"; }
+				}
+				oss << std::setw(indent) << "";
 				if( names != NULL_USER_OBJECT )
 					oss << escapeString(CHAR(STRING_ELT(names, i))) << ":";
-				oss << toJSON2( VECTOR_ELT(x,i) );
+				oss << toJSON2( VECTOR_ELT(x,i), indent, indent_amount );
 			}
 			break;
 		default:
 			error("unable to convert R type %i to JSON\n", TYPEOF(x));
 	}
 	UNPROTECT(1);
-	oss << container_closer;
+	if( !container_closer.empty() ) {
+		indent -= indent_amount;
+		if( indent_amount > 0 ) { oss << "\n"; }
+		oss << std::setw(indent) << "";
+		oss << container_closer;
+	}
 	return oss.str();
 }
 
 extern "C" {
-	SEXP toJSON( SEXP obj )
+	SEXP toJSON( SEXP obj, SEXP indent )
 	{
-		std::string buf = toJSON2( obj );
+		int indent_amount = INTEGER(indent)[0];
+
+		std::string buf = toJSON2( obj, 0, indent_amount );
 		SEXP p;
 		PROTECT(p=allocVector(STRSXP, 1));
 		SET_STRING_ELT(p, 0, mkCharCE( buf.c_str(), CE_UTF8 ));

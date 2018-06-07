@@ -1,7 +1,7 @@
-toJSON <- function( x, method = "C" )
+toJSON <- function( x, indent = 0, method = "C" )
 {
 	if( method == "C" ) {
-		return( .Call("toJSON", x, PACKAGE="rjson")[[ 1 ]] )
+		return( .Call("toJSON", x, as.integer(indent), PACKAGE="rjson")[[ 1 ]] )
 	} else if( method != "R" ) {
 		stop("bad method - only R or C" )
 	}
