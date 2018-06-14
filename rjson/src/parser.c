@@ -8,6 +8,12 @@
 #define UNEXPECTED_ESCAPE_SKIP 2 /* skip the unexpected char and move to the next character */
 #define UNEXPECTED_ESCAPE_KEEP 3 /* include the unexpected char as a regular char and continue */
 
+#define         MASKBITS                0x3F
+#define         MASKBYTE                0x80
+#define         MASK2BYTES              0xC0
+#define         MASK3BYTES              0xE0
+#define         MASK4BYTES              0xF0
+
 typedef struct ParseOptions {
 	int unexpected_escape_behavior;
 	int simplify_lists;
@@ -61,7 +67,7 @@ SEXP addClass( SEXP p, const char * class )
 
 int hasClass( SEXP p, const char * class )
 {
-	int i;
+	unsigned int i;
 	SEXP class_p;
 	PROTECT( class_p = GET_CLASS( p ) );
 	unsigned int size = GET_LENGTH( class_p );
@@ -75,12 +81,6 @@ int hasClass( SEXP p, const char * class )
 	UNPROTECT( 1 );
 	return FALSE;
 }
-
-#define         MASKBITS                0x3F
-#define         MASKBYTE                0x80
-#define         MASK2BYTES              0xC0
-#define         MASK3BYTES              0xE0
-#define         MASK4BYTES              0xF0
 
 int UTF8EncodeUnicode( unsigned long input, char * s )
 {
@@ -109,8 +109,8 @@ int UTF8EncodeUnicode( unsigned long input, char * s )
 	else 
 	{
 		s[ 0 ] = (MASK4BYTES | ( input >> 18 ) );
-		s[ 1 ] = (MASKBYTE | ( input >> 12 ) & MASKBITS );
-		s[ 2 ] = (MASKBYTE | ( ( input >> 6 ) & MASKBITS ) );
+		s[ 1 ] = (MASKBYTE | ( ( input >> 12 ) & MASKBITS ) );
+		s[ 2 ] = (MASKBYTE | ( ( input >>  6 ) & MASKBITS ) );
 		s[ 3 ] = (MASKBYTE | ( input & MASKBITS ) );
 		return 4;
 	}
