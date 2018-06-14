@@ -8,11 +8,11 @@
 #define UNEXPECTED_ESCAPE_SKIP 2 /* skip the unexpected char and move to the next character */
 #define UNEXPECTED_ESCAPE_KEEP 3 /* include the unexpected char as a regular char and continue */
 
-#define         MASKBITS                0x3F
-#define         MASKBYTE                0x80
-#define         MASK2BYTES              0xC0
-#define         MASK3BYTES              0xE0
-#define         MASK4BYTES              0xF0
+#define MASKBITS   0x3F
+#define MASKBYTE   0x80
+#define MASK2BYTES 0xC0
+#define MASK3BYTES 0xE0
+#define MASK4BYTES 0xF0
 
 typedef struct ParseOptions {
 	int unexpected_escape_behavior;
