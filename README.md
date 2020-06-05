@@ -11,6 +11,7 @@ rjson_pkg@mofo.ca
 Installing from source
 ----------------------
 
+    docker run -v `pwd`:/foo -w /foo -ti --rm rocker/r-devel R
     install.packages('/foo/rjson', repos=NULL)
 
 

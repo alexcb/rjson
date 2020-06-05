@@ -146,7 +146,12 @@ fromJSON <- function( json_str, file, method = "C", unexpected.escape = "error",
 	if( method != "C" )
 		stop( "only R or C method allowed" )
 
-	x <- .Call("fromJSON", json_str, unexpected.escape, simplify, PACKAGE="rjson")[[ 1 ]]
+	tmp <- .Call("fromJSON", json_str, unexpected.escape, simplify, PACKAGE="rjson")
+	size <- tmp[[ 2 ]]
+	if( size != nchar( json_str ) ) {
+		stop( sprintf("not all data was parsed (%d chars were parsed out of a total of %d chars)", size, nchar( json_str ) ) )
+	}
+	x <- tmp[[ 1 ]]
 	if( any( class(x) == "try-error" ) )
 		stop( x )
 	return( x )
