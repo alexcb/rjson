@@ -54,10 +54,10 @@ std::string escapeString( const char *s )
 					s += 2;
 				} else if( (ch & 0xF8) == 0xF0 && s[1] && s[2] && s[3] ) {
 					// 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-					unsigned int val = (s[3] & 0x3F) + ((s[2] & 0x3F) << 6) + ((s[1] & 0x3F) << 12) + ((s[0] & 0x07) << 18);
+					unsigned long val = (s[3] & 0x3F) + ((s[2] & 0x3F) << 6) + ((s[1] & 0x3F) << 12) + ((s[0] & 0x07) << 18);
 					// Per JSON spec, encode as UTF-16 https://en.wikipedia.org/wiki/UTF-16#Code_points_from_U+010000_to_U+10FFFF
 					// Could probably do directly from UTF-8 for improved performance
-					unsigned int U = val - 0x10000;
+					unsigned long U = val - 0x10000;
 					unsigned short hi = (U >> 10) + 0xD800;
 					unsigned short lo = (U & 0x3FF) + 0xDC00;
 					oss << "\\u" << std::setfill('0') << std::setw(4) << std::hex << hi << std::dec;
