@@ -33,6 +33,10 @@ test.unicode <- function()
 	checkTrue( all( charToRaw( x ) == c( 0xe3, 0x80, 0xa0 ) ) )
 	checkTrue( length( charToRaw( x ) ) == 3 )
 
+	#test 4 byte utf8 unicode roundtrip
+	emo <- "\U1F600"
+	checkIdentical(fromJSON(toJSON(emo)), emo)
+
 	#x = newJSONParser()
 	#x$addData( "\"\\u00" )
 	#checkTrue( is.null( x$getObject() ) ) #should be incomplete
