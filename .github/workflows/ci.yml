@@ -1,0 +1,19 @@
+name: GitHub Actions CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  tests:
+    name: rjson build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: earthly/actions/setup-earthly@v1
+        with:
+          version: v0.6.2
+      - uses: actions/checkout@v2
+      - name: +test
+        run: earthly +test
