@@ -269,8 +269,9 @@ SEXP parseFalse( const char *s, const char **next_ch, const ParseOptions *parse_
 		UNPROTECT( 1 );
 		return p;
 	}
-	if( strlen( s ) < 5 )
+	if( strlen( s ) < 5 ) {
 		return addClass( mkError( "parseFalse: expected to see 'false' - likely an unquoted string starting with 'f', or truncated false.\n" ), INCOMPLETE_CLASS );
+	}
 	return mkError( "parseFalse: expected to see 'false' - likely an unquoted string starting with 'f'.\n" );
 }
 

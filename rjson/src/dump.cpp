@@ -85,7 +85,8 @@ std::string toJSON2( SEXP x, int indent, int indent_amount )
 
 	int i = 0;
 	int n = length(x);
-	SEXP names = GET_NAMES(x);
+	SEXP names;
+	PROTECT( names = GET_NAMES(x) );
 
 	//int container = NO_CONTAINER;
 	std::string container_closer;
@@ -213,7 +214,7 @@ std::string toJSON2( SEXP x, int indent, int indent_amount )
 		default:
 			error("unable to convert R type %i to JSON\n", TYPEOF(x));
 	}
-	UNPROTECT(1);
+	UNPROTECT(2);
 	if( !container_closer.empty() ) {
 		indent -= indent_amount;
 		if( indent_amount > 0 ) { oss << "\n"; }
