@@ -36,3 +36,16 @@ rcheck:
 test:
     BUILD +unittest
     #BUILD +rcheck # TODO enable this once rcheck is fixed
+
+
+reformat:
+    FROM ubuntu:20.04
+    ENV DEBIAN_FRONTEND=noninteractive
+    RUN apt-get update && \
+        apt-get install -y \
+        clang-format-7
+    WORKDIR /code
+    COPY .clang-format .
+    COPY --dir rjson/src src
+    RUN find . -type f -name '*.c' -exec clang-format-7 -i {} \;
+    SAVE ARTIFACT src/* AS LOCAL rjson/src/
