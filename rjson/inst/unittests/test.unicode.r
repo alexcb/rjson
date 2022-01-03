@@ -45,6 +45,11 @@ test.unicode <- function()
 	json <- "\"Anaheim \\ud83d\\ude0eDucks\""
 	x <- fromJSON( json )
 	checkIdentical( x, "Anaheim \xf0\x9f\x98\x8eDucks" )
+
+	x <- fromJSON("{\"a\":\"ï\"}")
+	checkIdentical( x$a, "ï" )
+	x <- toJSON(x$a)
+	checkIdentical( x, "\"\\u00ef\"" ) # note that re-encoded will use escaped unicode form
 }
 
 
