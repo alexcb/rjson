@@ -65,6 +65,34 @@ SEXP addClass( SEXP p, const char * class )
 	return p;
 }
 
+// mkErrorWithClass only exists to work around rcheck enforcing PROTECT/UNPROTECT calls around all functions
+// which prevents one from doing:
+//   return addClass( mkError( "no data to parse\n" ), INCOMPLETE_CLASS );
+// which instead would become:
+//   SEXP err = PROTECT(mkError( "no data to parse\n" ));
+//   SEXP err_classed = addClass(err , INCOMPLETE_CLASS );
+//   UNPROTECT(1);
+//   return err_classed;
+// to make matters worse, it's not possiblt to pass a va_list from this func onwards to mkError.
+SEXP mkErrorWithClass( const char* class, const char* format, ...)
+{
+	SEXP p, classp;
+	char buf[ 256 ];
+	va_list args;
+	va_start( args, format );
+	vsnprintf( buf, 256, format, args );
+	va_end( args );
+
+	PROTECT( p = allocVector(STRSXP, 2) );
+	SET_STRING_ELT( p, 0, mkCharCE( buf, CE_UTF8 ) );
+	PROTECT( classp = allocVector(STRSXP, 1) );
+	SET_STRING_ELT( classp, 0, mkChar( TRYERROR_CLASS ) );
+	SET_STRING_ELT( classp, 1, mkChar( class ) );
+	SET_CLASS( p, classp );
+	UNPROTECT( 2 );
+	return p;
+}
+
 int hasClass( SEXP p, const char * class )
 {
 	unsigned int i;
@@ -225,7 +253,7 @@ SEXP parseValue( const char *s, const char **next_ch, const ParseOptions *parse_
 	}
 
 	if( *s == '\0' ) {
-		return addClass( mkError( "no data to parse\n" ), INCOMPLETE_CLASS );
+		return mkErrorWithClass( INCOMPLETE_CLASS, "no data to parse\n" );
 	}
 
 	return mkError( "unexpected character '%c'\n", *s );
@@ -239,8 +267,9 @@ SEXP parseNull( const char *s, const char **next_ch, const ParseOptions *parse_o
 	}
 
 	/* TODO should really look at subset of "null" (e.g. "nul", "nu" ), so that "not" fails before reaching 4 digits */
-	if( strlen( s ) < 4 )
-		return addClass( mkError( "parseNull: expected to see 'null' - likely an unquoted string starting with 'n', or truncated null.\n" ), INCOMPLETE_CLASS );
+	if( strlen( s ) < 4 ) {
+		return mkErrorWithClass( INCOMPLETE_CLASS, "parseNull: expected to see 'null' - likely an unquoted string starting with 'n', or truncated null.\n" );
+	}
 	return mkError( "parseNull: expected to see 'null' - likely an unquoted string starting with 'n'.\n" );
 }
 
@@ -254,8 +283,9 @@ SEXP parseTrue( const char *s, const char **next_ch, const ParseOptions *parse_o
 		UNPROTECT( 1 );
 		return p;
 	}
-	if( strlen( s ) < 4 )
-		return addClass( mkError( "parseTrue: expected to see 'true' - likely an unquoted string starting with 't', or truncated true.\n" ), INCOMPLETE_CLASS );
+	if( strlen( s ) < 4 ) {
+		return mkErrorWithClass( INCOMPLETE_CLASS, "parseTrue: expected to see 'true' - likely an unquoted string starting with 't', or truncated true.\n" );
+	}
 	return mkError( "parseTrue: expected to see 'true' - likely an unquoted string starting with 't'.\n" );
 }
 
@@ -270,7 +300,7 @@ SEXP parseFalse( const char *s, const char **next_ch, const ParseOptions *parse_
 		return p;
 	}
 	if( strlen( s ) < 5 ) {
-		return addClass( mkError( "parseFalse: expected to see 'false' - likely an unquoted string starting with 'f', or truncated false.\n" ), INCOMPLETE_CLASS );
+		return mkErrorWithClass( INCOMPLETE_CLASS, "parseFalse: expected to see 'false' - likely an unquoted string starting with 'f', or truncated false.\n" );
 	}
 	return mkError( "parseFalse: expected to see 'false' - likely an unquoted string starting with 'f'.\n" );
 }
@@ -301,18 +331,18 @@ SEXP parseString( const char *s, const char **next_ch, const ParseOptions *parse
 		while( s[ i ] != '\\' && s[ i ] != '"' && s[ i ] != '\0' )
 			i++;
 		if( s[ i ] == '\0' ) {
-			error_p = addClass( mkError( "unclosed string\n" ), INCOMPLETE_CLASS );
+			error_p = mkErrorWithClass( INCOMPLETE_CLASS, "unclosed string\n" );
 			goto error;
 		}
 
 		if( s[ i ] == '\\' ) {
 			if( s[ i + 1 ] == '\0' ) {
-				error_p = addClass( mkError( "unclosed string\n" ), INCOMPLETE_CLASS );
+				error_p = mkErrorWithClass( INCOMPLETE_CLASS, "unclosed string\n" );
 				goto error;
 			}
 			/* TODO couldn't this be caught above (where s[ i ] == '\0') */
 			if( s[ i + 2 ] == '\0' ) {
-				error_p = addClass( mkError( "unclosed string\n" ), INCOMPLETE_CLASS );
+				error_p = mkErrorWithClass( INCOMPLETE_CLASS, "unclosed string\n" );
 				goto error;
 			}
 
@@ -460,13 +490,13 @@ SEXP parseArray( const char *s, const char **next_ch, const ParseOptions *parse_
 			s++;
 		if( *s == '\0' ) {
 			UNPROTECT( objs );
-			return addClass( mkError( "incomplete array\n" ), INCOMPLETE_CLASS );
+			return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete array\n" );
 		}
 
 		if( *s == ']' ) {
 			if( trailing_comma ) {
 				UNPROTECT( objs );
-				return addClass( mkError( "trailing comma found in array\n" ), INCOMPLETE_CLASS );
+				return mkErrorWithClass( INCOMPLETE_CLASS, "trailing comma found in array\n" );
 			}
 
 			*next_ch = s + 1;
@@ -532,7 +562,7 @@ SEXP parseArray( const char *s, const char **next_ch, const ParseOptions *parse_
 		
 		if( *s == '\0' ) {
 			UNPROTECT( objs );
-			return addClass( mkError( "incomplete array\n" ), INCOMPLETE_CLASS );
+			return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete array\n" );
 		}
 
 		
@@ -547,7 +577,7 @@ SEXP parseArray( const char *s, const char **next_ch, const ParseOptions *parse_
 			trailing_comma = 1;
 		} else if( *s == '\0' ) {
 			UNPROTECT( objs );
-			return addClass( mkError( "incomplete array\n" ), INCOMPLETE_CLASS );
+			return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete array\n" );
 		} else {
 			UNPROTECT( objs );
 			return mkError( "unexpected character: %c\n", *s );
@@ -582,7 +612,7 @@ SEXP parseList( const char *s, const char **next_ch, const ParseOptions *parse_o
 			s++;
 		if( *s == '\0' ) {
 			UNPROTECT( objs );
-			return addClass( mkError( "incomplete list\n" ), INCOMPLETE_CLASS );
+			return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete list\n" );
 		}
 
 		if( *s == '}' && list_i == 0 ) {
@@ -623,7 +653,7 @@ SEXP parseList( const char *s, const char **next_ch, const ParseOptions *parse_o
 		if( *s != ':' ) {
 			UNPROTECT( objs );
 			if( *s == '\0' )
-				return addClass( mkError( "incomplete list - missing :\n" ), INCOMPLETE_CLASS );
+				return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete list - missing :\n" );
 			return mkError( "incomplete list - missing :\n" );
 		}
 		s++; /* move past ':' */
@@ -633,7 +663,7 @@ SEXP parseList( const char *s, const char **next_ch, const ParseOptions *parse_o
 			s++;
 		if( *s == '\0' ) {
 			UNPROTECT( objs );
-			return addClass( mkError( "incomplete list\n" ), INCOMPLETE_CLASS );
+			return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete list\n" );
 		}
 
 		/* get value */
@@ -668,7 +698,7 @@ SEXP parseList( const char *s, const char **next_ch, const ParseOptions *parse_o
 			s++;
 		if( *s == '\0' ) {
 			UNPROTECT( objs );
-			return addClass( mkError( "incomplete list\n" ), INCOMPLETE_CLASS );
+			return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete list\n" );
 		}
 
 		/* end of list */
@@ -712,7 +742,7 @@ SEXP parseNumber( const char *s, const char **next_ch, const ParseOptions *parse
 	}
 
 	if( *s == '\0' ) {
-		return addClass( mkError( "parseNumer error\n", *s ), INCOMPLETE_CLASS );
+		return mkErrorWithClass( INCOMPLETE_CLASS, "parseNumer error\n" );
 	}
 
 	if( *s == '0' ) {
