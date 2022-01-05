@@ -200,7 +200,7 @@ int getUnexpectedEscapeHandlingCode( const char* s )
 SEXP fromJSON( SEXP str_in, SEXP unexpected_escape_behavior, SEXP simplify )
 {
 	const char* s = CHAR( STRING_ELT( str_in, 0 ) );
-	const char* next_ch;
+	const char* next_ch = s;
 	SEXP p, next_i, list;
 
 	ParseOptions parse_options;
@@ -394,7 +394,7 @@ SEXP parseString( const char* s, const char** next_ch, const ParseOptions* parse
 			case 't':
 				buf[buf_i] = '\t';
 				break;
-			case 'u':;
+			case 'u':
 				unsigned long unicode;
 				int read_bytes = parseUTF16Sequence( s, i, &unicode );
 				if( read_bytes != 4 && read_bytes != 10 ) {
@@ -425,7 +425,6 @@ SEXP parseString( const char* s, const char** next_ch, const ParseOptions* parse
 				}
 				else {
 					/* case of UNEXPECTED_ESCAPE_ERROR, or any other bad enum values */
-					free( buf );
 					error_p = mkError( "unexpected escaped character '\\%c' at pos %i", s[i], i );
 					goto error;
 				}
