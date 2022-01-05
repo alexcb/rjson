@@ -28,10 +28,12 @@ rcheck:
     COPY +cran/rjson_* .
     RUN test $(ls rjson_*.tar.gz | wc -l) = 1
     RUN chmod +x /container.sh
-    RUN /container.sh rjson_*.tar.gz 2>&1 | tee output.txt
-    # /container.sh doesn't return an exit code on failures, so we will test that ERROR
-    # doesn't exist in the output
-    RUN cat output.txt | grep -v ERROR
+    RUN echo "#!/bin/bash
+# /container.sh doesn't return an exit code on failures, so we will test that ERROR
+# doesn't exist in the output
+/container.sh rjson_*.tar.gz 2>&1 | tee output.txt
+cat output.txt | grep -v ERROR" > test.sh && chmod +x test.sh
+	RUN ./test.sh
 
 test:
     BUILD +unittest

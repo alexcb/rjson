@@ -489,54 +489,49 @@ void setArrayElement( SEXP array, int unsigned i, SEXP val )
 
 SEXP parseArray( const char* s, const char** next_ch, const ParseOptions* parse_options )
 {
-	PROTECT_INDEX p_index = -1, array_index = -1;
+	PROTECT_INDEX array_index = -1;
 	SEXP p = NULL, array = NULL;
 	/* assert( *s == '[' ) */
 	s++; /* move past '[' */
-	int objs = 0;
 	int is_list = FALSE;
 	SEXPTYPE p_type = -1;
 	unsigned int array_i = 0;
 
 	int trailing_comma = 0;
 
+	PROTECT_WITH_INDEX( array = R_NilValue, &array_index );
+
 	while( 1 ) {
 		/* ignore whitespace */
 		while( *s == ' ' || *s == '\t' || *s == '\n' || *s == '\r' )
 			s++;
 		if( *s == '\0' ) {
-			UNPROTECT( objs );
+			UNPROTECT( 1 ); /* array */
 			return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete array\n" );
 		}
 
 		if( *s == ']' ) {
 			if( trailing_comma ) {
-				UNPROTECT( objs );
+				UNPROTECT( 1 ); /* array */
 				return mkErrorWithClass( INCOMPLETE_CLASS, "trailing comma found in array\n" );
 			}
 
 			*next_ch = s + 1;
+			UNPROTECT( 1 ); /* array */
 			return allocVector( VECSXP, 0 );
 		}
 		trailing_comma = 0;
 
-		/* parse element (and protect pointer - ugly) */
-		if( p == NULL ) {
-			PROTECT_WITH_INDEX( p = parseValue( s, next_ch, parse_options ), &p_index );
-			objs++;
-		}
-		else {
-			REPROTECT( p = parseValue( s, next_ch, parse_options ), p_index );
-		}
+		PROTECT( p = parseValue( s, next_ch, parse_options ) );
 		s = *next_ch;
 
 		/* check p for errors */
 		if( hasClass( p, TRYERROR_CLASS ) == TRUE ) {
-			UNPROTECT( objs );
+			UNPROTECT( 2 ); /* p, array */
 			return p;
 		}
 
-		if( array == NULL ) {
+		if( array == R_NilValue ) {
 			if( !parse_options->simplify_lists ) {
 				p_type = VECSXP;
 				is_list = TRUE;
@@ -553,9 +548,7 @@ SEXP parseArray( const char* s, const char** next_ch, const ParseOptions* parse_
 				p_type = TYPEOF( p );
 				is_list = FALSE;
 			}
-			PROTECT_WITH_INDEX( array = allocVector( p_type, DEFAULT_VECTOR_START_SIZE ),
-								&array_index );
-			objs++;
+			REPROTECT( array = allocVector( p_type, DEFAULT_VECTOR_START_SIZE ), array_index );
 		}
 
 		/* check array type matches */
@@ -575,6 +568,8 @@ SEXP parseArray( const char* s, const char** next_ch, const ParseOptions* parse_
 			SET_VECTOR_ELT( array, array_i, p );
 		else
 			setArrayElement( array, array_i, p );
+		UNPROTECT( 1 ); /* p */
+		p = NULL;
 		array_i++;
 
 		/* ignore whitespace */
@@ -582,7 +577,7 @@ SEXP parseArray( const char* s, const char** next_ch, const ParseOptions* parse_
 			s++;
 
 		if( *s == '\0' ) {
-			UNPROTECT( objs );
+			UNPROTECT( 1 ); /* array */
 			return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete array\n" );
 		}
 
@@ -597,11 +592,11 @@ SEXP parseArray( const char* s, const char** next_ch, const ParseOptions* parse_
 			trailing_comma = 1;
 		}
 		else if( *s == '\0' ) {
-			UNPROTECT( objs );
+			UNPROTECT( 1 ); /* array */
 			return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete array\n" );
 		}
 		else {
-			UNPROTECT( objs );
+			UNPROTECT( 1 ); /* array */
 			return mkError( "unexpected character: %c\n", *s );
 		}
 	}
@@ -611,35 +606,34 @@ SEXP parseArray( const char* s, const char** next_ch, const ParseOptions* parse_
 
 	*next_ch = s + 1;
 
-	UNPROTECT( objs );
+	UNPROTECT( 1 ); /* array */
+
 	return array;
 }
 
 SEXP parseList( const char* s, const char** next_ch, const ParseOptions* parse_options )
 {
-	PROTECT_INDEX key_index, val_index, list_index, list_names_index;
+	PROTECT_INDEX list_index, list_names_index;
 	SEXP key = NULL, val = NULL, list, list_names;
 	/* assert( *s == '{' ) */
 	s++; /* move past '{' */
-	int objs = 0;
 	unsigned int list_i = 0;
 
 	PROTECT_WITH_INDEX( list = allocVector( VECSXP, DEFAULT_VECTOR_START_SIZE ), &list_index );
 	PROTECT_WITH_INDEX( list_names = allocVector( STRSXP, DEFAULT_VECTOR_START_SIZE ),
 						&list_names_index );
-	objs += 2;
 
 	while( 1 ) {
 		/* ignore whitespace */
 		while( *s == ' ' || *s == '\t' || *s == '\n' || *s == '\r' )
 			s++;
 		if( *s == '\0' ) {
-			UNPROTECT( objs );
+			UNPROTECT( 2 );
 			return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete list\n" );
 		}
 
 		if( *s == '}' && list_i == 0 ) {
-			UNPROTECT( objs );
+			UNPROTECT( 2 );
 			*next_ch = s + 1;
 			return allocVector( VECSXP, 0 );
 		}
@@ -647,29 +641,23 @@ SEXP parseList( const char* s, const char** next_ch, const ParseOptions* parse_o
 		/* get key */
 
 		if( *s != '\"' ) {
-			UNPROTECT( objs );
+			UNPROTECT( 2 );
 			return mkError(
 				"unexpected character \"%c\"; expecting opening string quote (\") for key value\n",
 				*s );
 		}
 
-		if( key == NULL ) {
-			PROTECT_WITH_INDEX( key = parseString( s, next_ch, parse_options ), &key_index );
-			objs++;
-		}
-		else {
-			REPROTECT( key = parseString( s, next_ch, parse_options ), key_index );
-		}
+		PROTECT( key = parseString( s, next_ch, parse_options ) );
 		s = *next_ch;
 
 		/* check key for errors */
 		if( hasClass( key, TRYERROR_CLASS ) == TRUE ) {
-			UNPROTECT( objs );
+			UNPROTECT( 3 );
 			return key;
 		}
 
 		if( IS_CHARACTER( key ) == FALSE ) {
-			UNPROTECT( objs );
+			UNPROTECT( 3 );
 			return mkError( "list keys must be strings\n" );
 		}
 
@@ -677,7 +665,7 @@ SEXP parseList( const char* s, const char** next_ch, const ParseOptions* parse_o
 		while( *s == ' ' || *s == '\t' || *s == '\n' || *s == '\r' )
 			s++;
 		if( *s != ':' ) {
-			UNPROTECT( objs );
+			UNPROTECT( 3 );
 			if( *s == '\0' )
 				return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete list - missing :\n" );
 			return mkError( "incomplete list - missing :\n" );
@@ -688,23 +676,17 @@ SEXP parseList( const char* s, const char** next_ch, const ParseOptions* parse_o
 		while( *s == ' ' || *s == '\t' || *s == '\n' || *s == '\r' )
 			s++;
 		if( *s == '\0' ) {
-			UNPROTECT( objs );
+			UNPROTECT( 3 );
 			return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete list\n" );
 		}
 
 		/* get value */
-		if( val == NULL ) {
-			PROTECT_WITH_INDEX( val = parseValue( s, next_ch, parse_options ), &val_index );
-			objs++;
-		}
-		else {
-			REPROTECT( val = parseValue( s, next_ch, parse_options ), val_index );
-		}
+		PROTECT( val = parseValue( s, next_ch, parse_options ) );
 		s = *next_ch;
 
 		/* check val for errors */
 		if( hasClass( val, TRYERROR_CLASS ) == TRUE ) {
-			UNPROTECT( objs );
+			UNPROTECT( 4 );
 			return val;
 		}
 
@@ -718,13 +700,16 @@ SEXP parseList( const char* s, const char** next_ch, const ParseOptions* parse_o
 		/* save key and value */
 		SET_STRING_ELT( list_names, list_i, STRING_ELT( key, 0 ) );
 		SET_VECTOR_ELT( list, list_i, val );
+		UNPROTECT( 2 ); /* key, val */
+		key = NULL;
+		val = NULL;
 		list_i++;
 
 		/* ignore whitespace */
 		while( *s == ' ' || *s == '\t' || *s == '\n' || *s == '\r' )
 			s++;
 		if( *s == '\0' ) {
-			UNPROTECT( objs );
+			UNPROTECT( 2 );
 			return mkErrorWithClass( INCOMPLETE_CLASS, "incomplete list\n" );
 		}
 
@@ -738,7 +723,7 @@ SEXP parseList( const char* s, const char** next_ch, const ParseOptions* parse_o
 			s++;
 		}
 		else {
-			UNPROTECT( objs );
+			UNPROTECT( 2 );
 			return mkError( "unexpected character: %c\n", *s );
 		}
 	}
@@ -752,7 +737,7 @@ SEXP parseList( const char* s, const char** next_ch, const ParseOptions* parse_o
 
 	*next_ch = s + 1;
 
-	UNPROTECT( objs );
+	UNPROTECT( 2 );
 	return list;
 }
 
