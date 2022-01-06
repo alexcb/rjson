@@ -1,10 +1,10 @@
 Package: rjson
-Version: 0.2.20
-Date: 2018-05-18
+Version: 0.2.21
+Date: 2022-01-06
 Title: JSON for R
 Author: Alex Couture-Beil <rjson_pkg@mofo.ca>
 Maintainer: Alex Couture-Beil <rjson_pkg@mofo.ca>
-Depends: R (>= 3.1.0)
+Depends: R (>= 4.0.0)
 Description: Converts R object into JSON objects and vice-versa.
 License: GPL-2
 Repository: CRAN
