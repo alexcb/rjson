@@ -394,7 +394,7 @@ SEXP parseString( const char* s, const char** next_ch, const ParseOptions* parse
 			case 't':
 				buf[buf_i] = '\t';
 				break;
-			case 'u':
+			case 'u': ; /* semi-colon required to prevent windows-compile warning related to var declaration inside case statement */
 				unsigned long unicode;
 				int read_bytes = parseUTF16Sequence( s, i, &unicode );
 				if( read_bytes != 4 && read_bytes != 10 ) {
