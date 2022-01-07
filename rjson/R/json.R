@@ -140,7 +140,9 @@ fromJSON <- function( json_str, file, method = "C", unexpected.escape = "error",
 			stop( "only one of json_str or file must be supplied to fromJSON")
 		}
 	}
-	
+
+	json_str <- trimws( json_str )
+
 	if( method == "R" )
 		return( .fromJSON_R( json_str ) )
 	if( method != "C" )
