@@ -1,0 +1,19 @@
+# ngramr v1.7.4 had an error; I was able to replicate it with this (which has since been updated to 1.7.5 and now passes)
+ngramr:
+    FROM kalibera/rchk:latest
+    RUN apt-get update && apt-get install -y wget libssl-dev libxml2-dev libxslt1-dev
+
+    RUN bash -c "Rscript <(echo 'install.packages(\"httr\", repos=\"http://cran.us.r-project.org\")')"
+    RUN bash -c "Rscript <(echo 'install.packages(\"xml2\", repos=\"http://cran.us.r-project.org\")')"
+    RUN bash -c "Rscript <(echo 'install.packages(\"testthat\", repos=\"http://cran.us.r-project.org\")')"
+
+    RUN bash -c "Rscript <(echo 'install.packages(\"ngramr\", repos=\"http://cran.us.r-project.org\")')"
+
+    WORKDIR /reverse
+    RUN wget 'https://cran.r-project.org/src/contrib/ngramr_1.7.5.tar.gz'
+    COPY ../..+cran/rjson_* .
+    RUN mv rjson_* rjson.tar.gz
+    RUN bash -c "Rscript <(echo 'install.packages(\"rjson.tar.gz\", repos=NULL)')"
+    RUN tar xzf ngramr_1.7.5.tar.gz
+    RUN R CMD check ngramr
+

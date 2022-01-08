@@ -37,7 +37,7 @@ cat output.txt | grep -v ERROR" > test.sh && chmod +x test.sh
 
 test:
     BUILD +unittest
-    #BUILD +rcheck # TODO enable this once rcheck is fixed
+    BUILD +rcheck
 
 
 reformat:
