@@ -141,6 +141,12 @@ fromJSON <- function( json_str, file, method = "C", unexpected.escape = "error",
 		}
 	}
 
+	if( !is.character(json_str) )
+		stop( "json_str must be a character string" )
+
+	if( length(json_str) != 1 )
+		stop( "json_str can only contain a single element" )
+
 	json_str <- trimws( json_str )
 
 	if( method == "R" )
