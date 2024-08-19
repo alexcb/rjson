@@ -1,3 +1,5 @@
+VERSION 0.7
+
 deps:
     FROM rocker/r-devel
     RUN bash -c "Rscript <(echo 'install.packages(\"RUnit\", repos=\"http://cran.us.r-project.org\")')"
@@ -33,7 +35,7 @@ rcheck:
 # doesn't exist in the output
 /container.sh rjson_*.tar.gz 2>&1 | tee output.txt
 cat output.txt | grep -v ERROR" > test.sh && chmod +x test.sh
-	RUN ./test.sh
+    RUN ./test.sh
 
 test:
     BUILD +unittest
