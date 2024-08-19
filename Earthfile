@@ -21,6 +21,7 @@ cran:
     # first make sure there are no warnings
     RUN R CMD check --as-cran rjson
     # next make the tar.gz
+    ENV _R_CXX_USE_NO_REMAP_=true
     RUN R CMD build rjson
     SAVE ARTIFACT rjson_*.tar.gz AS LOCAL output/
 

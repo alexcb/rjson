@@ -64,7 +64,7 @@ std::string escapeString( const char *s )
 					oss << "\\u" << std::setfill('0') << std::setw(4) << std::hex << lo << std::dec;
 					s += 3;
 				} else {
-					error("unable to escape string. String is not utf8\n");
+					Rf_error("unable to escape string. String is not utf8\n");
 				}
 		}
 		s++;
@@ -84,7 +84,7 @@ std::string toJSON2( SEXP x, int indent, int indent_amount )
 		return "null";
 
 	int i = 0;
-	int n = length(x);
+	int n = Rf_length(x);
 	SEXP names;
 	PROTECT( names = GET_NAMES(x) );
 
@@ -97,8 +97,8 @@ std::string toJSON2( SEXP x, int indent, int indent_amount )
 		container_closer = "}";
 		if( indent_amount > 0 ) { oss << "\n"; }
 		indent += indent_amount;
-		if( length(names) != n )
-			error("number of names does not match number of elements\n");
+		if( Rf_length(names) != n )
+			Rf_error("number of names does not match number of elements\n");
 	} else if( n != 1 || TYPEOF(x) == VECSXP ) {
 		oss << "[";
 		container_closer = "]";
@@ -172,15 +172,15 @@ std::string toJSON2( SEXP x, int indent, int indent_amount )
 		case CPLXSXP:
 			{
 				SEXP p, p_names;
-				PROTECT( p = allocVector( REALSXP, 2 ) );
-				PROTECT( p_names = allocVector( STRSXP, 2 ) );
+				PROTECT( p = Rf_allocVector( REALSXP, 2 ) );
+				PROTECT( p_names = Rf_allocVector( STRSXP, 2 ) );
 
-				SET_STRING_ELT( p_names, 0, mkChar("real") );
+				SET_STRING_ELT( p_names, 0, Rf_mkChar("real") );
 				REAL(p)[0] = COMPLEX(x)[i].r;
-				SET_STRING_ELT( p_names, 1, mkChar("imaginary") );
+				SET_STRING_ELT( p_names, 1, Rf_mkChar("imaginary") );
 				REAL(p)[1] = COMPLEX(x)[i].i;
 
-				setAttrib( p, R_NamesSymbol, p_names );
+				Rf_setAttrib( p, R_NamesSymbol, p_names );
 				oss << toJSON2(p, indent, indent_amount);
 				UNPROTECT(2);
 			}
@@ -212,7 +212,7 @@ std::string toJSON2( SEXP x, int indent, int indent_amount )
 			}
 			break;
 		default:
-			error("unable to convert R type %i to JSON\n", TYPEOF(x));
+			Rf_error("unable to convert R type %i to JSON\n", TYPEOF(x));
 	}
 	UNPROTECT(2);
 	if( !container_closer.empty() ) {
@@ -231,8 +231,8 @@ extern "C" {
 
 		std::string buf = toJSON2( obj, 0, indent_amount );
 		SEXP p;
-		PROTECT(p=allocVector(STRSXP, 1));
-		SET_STRING_ELT(p, 0, mkCharCE( buf.c_str(), CE_UTF8 ));
+		PROTECT(p=Rf_allocVector(STRSXP, 1));
+		SET_STRING_ELT(p, 0, Rf_mkCharCE( buf.c_str(), CE_UTF8 ));
 		UNPROTECT( 1 );
 		return p;
 	}
