@@ -1,10 +1,10 @@
 Package: rjson
-Version: 0.2.22
+Version: 0.2.23
 Title: JSON for R
 Author: Alex Couture-Beil [aut, cre]
 Authors@R: person(given = "Alex", family = "Couture-Beil", role = c("aut", "cre"), email = "rjson_pkg@mofo.ca")
 Maintainer: Alex Couture-Beil <rjson_pkg@mofo.ca>
-Depends: R (>= 4.4.0)
+Depends: R (>= 4.0.0)
 Description: Converts R object into JSON objects and vice-versa.
 URL: https://github.com/alexcb/rjson
 License: GPL-2

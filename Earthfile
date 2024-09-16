@@ -9,11 +9,19 @@ code:
     COPY --dir rjson /code/rjson
     WORKDIR /code
 
+unicodecheck:
+    FROM alpine
+    RUN apk add file
+    COPY rjson/inst/unittests/test.unicode.r .
+    RUN file test.unicode.r | grep 'test.unicode.r: Unicode text, UTF-8 text'
+
 unittest:
-    FROM +code
+    ARG R_VERSION=4.4.0
+    FROM rocker/r-base:$R_VERSION
+    RUN bash -c "Rscript <(echo 'install.packages(\"RUnit\", repos=\"http://cran.us.r-project.org\")')"
+    COPY --dir rjson /code/rjson
+    WORKDIR /code
     COPY test.r .
-    # validate this file is utf-8 encoded
-    RUN file rjson/inst/unittests/test.unicode.r | grep 'test.unicode.r: Unicode text, UTF-8 text'
     RUN ./test.r
 
 cran:
@@ -39,8 +47,11 @@ cat output.txt | grep -v ERROR" > test.sh && chmod +x test.sh
     RUN ./test.sh
 
 test:
-    BUILD +unittest
+    BUILD +unittest \
+        --R_VERSION=4.0.0 \
+        --R_VERSION=4.4.0
     BUILD +rcheck
+    BUILD +unicodecheck
 
 
 reformat:

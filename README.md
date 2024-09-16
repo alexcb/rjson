@@ -11,11 +11,23 @@ rjson_pkg@mofo.ca
 
 rjson uses [earthly](http://github.com/earthly/earthly) to containerize common development tasks.
 
+### test
+
+To run a comprehensive test, run:
+
+    earthly +test
+
+This will run various sub-tests, against multiple versions of R.
+
 ### unit tests
 
 To run the unit tests, run:
 
     earthly +unittest
+
+or against a particular version of R, e.g. 4.0.0:
+
+    earthly +unittest --R_VERSION=4.0.0
 
 ### rcheck
 
